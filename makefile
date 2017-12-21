@@ -12,3 +12,6 @@ stop:
 
 chown:
 	@chmod 777 /var/run/docker.sock
+
+listen:
+	@cd py && python3 kafkaConsumeSmashing.py &
