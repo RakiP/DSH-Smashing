@@ -1,0 +1,10 @@
+https://vimeo.com/95307499
+
+sudo apt-get install ruby ruby-dev rubygems ruby-bundler libv8-dev nodejs -y
+sudo gem install dashing
+dashing new projectname
+cd projectname
+bundle
+dashing start -p 5000
+dashing generate dashboard newdashb
+dashing generate widget alert
