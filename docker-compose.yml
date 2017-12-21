@@ -20,6 +20,6 @@ services:
       - /usr/bin/docker:/usr/bin/docker
     working_dir: /smashingDSH
     container_name: dockersm
-    entrypoint: bash -lc "bundle && smashing start -p 5000 & sleep infinity"
+    entrypoint: bash -lc "bundle && smashing start -p 5000 & sleep infinity && python3 py/kafkaConsumeSmashing.py -d"
     #entrypoint: sleep 1h
     tty: true

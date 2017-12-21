@@ -1,27 +1,20 @@
 import json
-from kafka import KafkaProducer, KafkaClient, KafkaConsumer
+from kafka import KafkaConsumer
+import requests
 
-#import requests
-
-knpTenant = 'smashing'
-
-def readsendTenant(producer, topic):
+def readsendTenant(producer, tenant):
     global knpTenant
-    consumer = KafkaConsumer(topic, group_id='smash-group', bootstrap_servers=['localhost:9092'])
+    consumer = KafkaConsumer(knpTenant, group_id='smash-group', bootstrap_servers=['localhost:9092'])
     for message in consumer:
-        if message.key == b'Testresults':
+        if message.key == '{}'.format(tenant).encode():
             jDct = json.loads(message.value.decode('utf-8'))
-            print('Sending new Testresults of {}'.format(topic))
-            producer.send(knpTenant, key='{}'.format(topic).encode(), value=jDct)
+            print('Sending new Testresults of {}'.format(tenant))
+            requests.post("http://localhost:5000/widgets/{}".format(tenant), json=jDct)
 
-def main(): 
-    producer = KafkaProducer(bootstrap_servers='localhost:9092', value_serializer=lambda v: json.dumps(v).encode('utf-8'))
-    kafka = KafkaClient("127.0.0.1:9092")    
-    kafka.ensure_topic_exists(knpTenant)
-    
+def main():
     ############VIALIS##############
-    readsendTenant(producer, 'vialis')
-    #requests.post("http://localhost:5000/widgets/{}".format(topic), json=jDct)
+    readsendTenant('vialis')
+
 
 if __name__ == "__main__":
     main()
