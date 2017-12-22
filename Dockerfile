@@ -14,24 +14,16 @@ RUN apt-get install vim git -y
 RUN apt-get install sudo -y
 RUN apt-get install ruby ruby-dev rubygems ruby-bundler libv8-dev nodejs -y
 RUN gem install smashing
-RUN git clone https://github.com/RakiP/smashingDSH.git
+RUN git clone https://github.com/RakiP/DSH-Smashing.git
 
 # will be used by attached slave agents:
 EXPOSE ${agent_port}
 
-#rpartapsing:ssh hope that it works
+#Expose SSh port
 EXPOSE ${ssh_port}
 
-#ADD Testcases /robot/Testcases
-ADD py /smashingDSH/py
-RUN pip3 install -r /smashingDSH/py/requirements.txt
-
-#ADD runscript.sh /robot
-#RUN chmod 777 /robot/runscript.sh
-#ADD Testresults /robot/Testresults
-
-#VOLUME Testcases
-#VOLUME Testresults
+ADD py /DSH-Smashing/py
+RUN pip3 install -r /DSH-Smashing/py/requirements.txt
 
 RUN echo "done"
 
