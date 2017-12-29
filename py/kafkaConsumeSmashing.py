@@ -3,10 +3,11 @@ from kafka import KafkaConsumer
 import requests
 
 knpTenant = 'smashing'
+ipAddress = '172.22.0.1:9092'
 
 def readsendTenant(tenant):
     global knpTenant
-    consumer = KafkaConsumer(knpTenant, group_id='smash-group', bootstrap_servers=['localhost:9092'])
+    consumer = KafkaConsumer(knpTenant, group_id='smash-group', bootstrap_servers=[ipAddress])
     for message in consumer:
         if message.key == '{}'.format(tenant).encode():
             jDct = json.loads(message.value.decode('utf-8'))

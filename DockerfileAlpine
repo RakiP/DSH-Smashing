@@ -1,0 +1,137 @@
+FROM openjdk:8u121-jdk-alpine
+MAINTAINER "rpartapsing" <r.partapsing@gmail.com>
+LABEL name="Docker image for DSH smashing"
+
+ARG agent_port=5000
+ARG ssh_port=22
+
+RUN apk add --no-cache git openssh-client curl unzip bash nano ttf-dejavu coreutils
+RUN apk add --no-cache python3 && \
+    python3 -m ensurepip && \
+    rm -r /usr/lib/python*/ensurepip && \
+    pip3 install --upgrade pip setuptools && \
+    if [ ! -e /usr/bin/pip ]; then ln -s pip3 /usr/bin/pip ; fi && \
+    if [[ ! -e /usr/bin/python ]]; then ln -sf /usr/bin/python3 /usr/bin/python; fi && \
+    rm -r /root/.cache
+
+# skip installing gem documentation
+RUN mkdir -p /usr/local/etc \
+	&& { \
+		echo 'install: --no-document'; \
+		echo 'update: --no-document'; \
+	} >> /usr/local/etc/gemrc
+
+# install things globally, for great justice
+# and don't create ".bundle" in all our apps
+ENV GEM_HOME /usr/local/bundle
+ENV BUNDLE_PATH="$GEM_HOME" \
+	BUNDLE_BIN="$GEM_HOME/bin" \
+	BUNDLE_SILENCE_ROOT_WARNING=1 \
+	BUNDLE_APP_CONFIG="$GEM_HOME"
+ENV PATH $BUNDLE_BIN:$PATH
+RUN mkdir -p "$GEM_HOME" "$BUNDLE_BIN" \
+	&& chmod 777 "$GEM_HOME" "$BUNDLE_BIN"
+
+CMD [ "irb" ]
+
+ENV RUBY_MAJOR 2.4
+ENV RUBY_VERSION 2.4.2
+ENV RUBY_DOWNLOAD_SHA256 748a8980d30141bd1a4124e11745bb105b436fb1890826e0d2b9ea31af27f735
+
+# some of ruby's build scripts are written in ruby
+#   we purge system ruby later to make sure our final image uses what we just built
+# readline-dev vs libedit-dev: https://bugs.ruby-lang.org/issues/11869 and https://github.com/docker-library/ruby/issues/75
+RUN set -ex \
+	\
+	&& apk add --no-cache --virtual .ruby-builddeps \
+		autoconf \
+		bison \
+		bzip2 \
+		bzip2-dev \
+		ca-certificates \
+		coreutils \
+		gcc \
+		gdbm-dev \
+		glib-dev \
+		libc-dev \
+		libffi-dev \
+		libxml2-dev \
+		libxslt-dev \
+		linux-headers \
+		make \
+		ncurses-dev \
+		libressl \
+		libressl-dev \
+		procps \
+		readline-dev \
+		ruby \
+		tar \
+		yaml-dev \
+		zlib-dev \
+		xz \
+	\
+	&& wget -O ruby.tar.xz "https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR%-rc}/ruby-$RUBY_VERSION.tar.xz" \
+	&& echo "$RUBY_DOWNLOAD_SHA256 *ruby.tar.xz" | sha256sum -c - \
+	\
+	&& mkdir -p /usr/src/ruby \
+	&& tar -xJf ruby.tar.xz -C /usr/src/ruby --strip-components=1 \
+	&& rm ruby.tar.xz \
+	\
+	&& cd /usr/src/ruby \
+	\
+# hack in "ENABLE_PATH_CHECK" disabling to suppress:
+#   warning: Insecure world writable dir
+	&& { \
+		echo '#define ENABLE_PATH_CHECK 0'; \
+		echo; \
+		cat file.c; \
+	} > file.c.new \
+	&& mv file.c.new file.c \
+	\
+	&& autoconf \
+# the configure script does not detect isnan/isinf as macros
+	&& ac_cv_func_isnan=yes ac_cv_func_isinf=yes \
+		./configure --disable-install-doc --enable-shared \
+	&& make -j"$(getconf _NPROCESSORS_ONLN)" \
+	&& make install \
+	\
+	&& runDeps="$( \
+		scanelf --needed --nobanner --recursive /usr/local \
+			| awk '{ gsub(/,/, "\nso:", $2); print "so:" $2 }' \
+			| sort -u \
+			| xargs -r apk info --installed \
+			| sort -u \
+	)" \
+	&& apk add --virtual .ruby-rundeps $runDeps \
+		bzip2 \
+		ca-certificates \
+		libffi-dev \
+		libressl-dev \
+		yaml-dev \
+		procps \
+		zlib-dev \
+	&& apk del .ruby-builddeps \
+	&& cd / \
+	&& rm -r /usr/src/ruby
+
+ENV RUBYGEMS_VERSION 2.6.14
+RUN gem update --system "$RUBYGEMS_VERSION"
+
+ENV BUNDLER_VERSION 1.15.4
+RUN gem install bundler --version "$BUNDLER_VERSION"
+
+#RUN apk add --no-cache ruby ruby-dev rubygems ruby-bundler libv8-dev nodejs
+RUN gem install smashing
+RUN git clone https://github.com/RakiP/DSH-Smashing.git
+
+# will be used by attached slave agents:
+EXPOSE ${agent_port}
+
+#Expose SSh port
+EXPOSE ${ssh_port}
+
+ADD py /DSH-Smashing/py
+RUN pip3 install -r /DSH-Smashing/py/requirements.txt
+
+RUN echo "done"
+
