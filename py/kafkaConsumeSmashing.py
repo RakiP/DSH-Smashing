@@ -11,8 +11,10 @@ def readsendTenant(tenant):
     for message in consumer:
         if message.key == '{}'.format(tenant).encode():
             jDct = json.loads(message.value.decode('utf-8'))
-            #print('Sending new Testresults of {}'.format(tenant))
-            requests.post("http://localhost:5000/widgets/{}".format(tenant), json=jDct)
+            print('Sending new Testresults of {}'.format(tenant))
+            requests.post("http://172.22.0.1:5000/widgets/{}".format(tenant), json=jDct)
+            # consume earliest available messages, don't commit offsets
+    KafkaConsumer(bootstrap_servers=[ipAddress], auto_offset_reset='earliest', enable_auto_commit=False)
 
 def main():
     ############VIALIS##############
