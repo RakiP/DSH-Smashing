@@ -3,7 +3,7 @@ from kafka import KafkaConsumer
 import requests
 
 knpTenant = 'smashing'
-ipAddress = '172.22.0.1'
+ipAddress = '172.20.0.1'
 
 def readsendTenant(tenant):
     global knpTenant

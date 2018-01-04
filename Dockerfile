@@ -13,6 +13,7 @@ RUN apt-get install iputils-ping ssh curl nano net-tools netcat -y
 RUN apt-get install git -y
 RUN apt-get install sudo -y
 RUN apt-get install ruby ruby-dev rubygems ruby-bundler libv8-dev nodejs -y
+RUN apt-get clean all
 RUN gem install smashing
 RUN git clone https://github.com/RakiP/DSH-Smashing.git
 
