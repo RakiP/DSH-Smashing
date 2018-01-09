@@ -11,8 +11,9 @@ services:
       - /var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker
-    working_dir: /DSH-Smashing
+    working_dir: /dashboard/DSH-Smashing
     external_links:
       - dkafka
     container_name: dockersm
-    entrypoint: bash -c "chmod u+x py/runscript.sh && py/runscript.sh"
+    entrypoint: bash -c "chmod u+x /dashboard/DSH-Smashing/runscript.sh && /dashboard/DSH-Smashing/runscript.sh"
+    #entrypoint: sleep 1h

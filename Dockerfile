@@ -1,39 +1,44 @@
-FROM openjdk:8-jdk-slim
-MAINTAINER "rpartapsing" <r.partapsing@gmail.com>
-LABEL name="Docker image for DSH smashing"
+FROM ruby:alpine
 
-ARG agent_port=5000
-ARG ssh_port=22
+WORKDIR /dashboard
 
-RUN rm /bin/sh && ln -s /bin/bash /bin/sh
-RUN apt-get -y update && apt-get upgrade -y
-RUN apt-get install python3 build-essential python-dev python3-pip python-setuptools -y
-#RUN apt-get install libxml2-dev libxslt1-dev python-dev -y
-RUN apt-get install iputils-ping ssh curl nano net-tools netcat -y
-RUN apt-get install git -y
-RUN apt-get install sudo -y
-RUN apt-get install ruby ruby-dev rubygems ruby-bundler libv8-dev nodejs -y
-RUN apt-get clean all
-RUN gem install smashing
+ENV GEM_HOME /dashboard/.bundle
+ENV BUNDLE_PATH="$GEM_HOME" \
+    BUNDLE_BIN="$GEM_HOME/bin" \
+    BUNDLE_APP_CONFIG="$GEM_HOME"
+ENV PATH $BUNDLE_BIN:$PATH
+
+RUN apk add --no-cache git openssh-client curl unzip bash nano sudo ttf-dejavu coreutils
+
 RUN git clone https://github.com/RakiP/DSH-Smashing.git
 
-# will be used by attached slave agents:
-EXPOSE ${agent_port}
+RUN echo "@testing http://dl-4.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
+  && apk add --update \
+              musl \
+              build-base \
+              linux-headers \
+              ca-certificates \
+              python3 \
+              python3-dev \
+  && pip3 install --no-cache-dir --upgrade --force-reinstall pip \
+  && rm /var/cache/apk/*
 
-#Expose SSh port
-EXPOSE ${ssh_port}
+RUN cd /usr/bin \
+  && ln -sf easy_install-3.5 easy_install \
+  && ln -sf idle3.5 idle \
+  && ln -sf pydoc3.5 pydoc \
+  && ln -sf python3.5 python \
+  && ln -sf python3.5-config python-config \
+  && ln -sf pip3.5 pip
 
-EXPOSE 3030
-EXPOSE 8081
-EXPOSE 8082
-EXPOSE 8083
-EXPOSE 9092
-EXPOSE 2181
 
-#ENTRYPOINT ["tail", "-f", "/dev/null"]
+RUN apk update && apk add make gcc g++ nodejs
 
-ADD py /DSH-Smashing/py
-RUN pip3 install -r /DSH-Smashing/py/requirements.txt
+RUN gem install smashing bundler
 
-RUN echo "done"
+#Expose ports
+EXPOSE 22
+EXPOSE 5000
 
+ADD py DSH-Smashing
+RUN pip3 install -r DSH-Smashing/requirements.txt
