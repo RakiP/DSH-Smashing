@@ -1,5 +1,5 @@
 LISTENER:=PATHTOLISTENER
-IPREAL:='IPADDRESS'
+IPREAL='IPADDRESS'
 
 build:
 	@docker build -t dockersm --network=host .
